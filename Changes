@@ -4,6 +4,9 @@ Histórico de revisões do módulo Business::BR::Boleto
                         - Adicionando documentação
                         - Removido módulo não utilizado
                         Business::BR::Boleto::Beneficiario
+                        - Removida cópia do módulo
+                        Business::BR:Boleto::Renderer::PDF, que se tornou
+                        um módulo separado.
 
 0.0.2               2014-09-20
                         - Adicionando o arquivo Changes
