@@ -5,7 +5,6 @@ use Carp;
 
 use MAD::Loader qw{ load_and_new };
 
-use Business::BR::Boleto::Banco;
 use Business::BR::Boleto::Cedente;
 use Business::BR::Boleto::Sacado;
 use Business::BR::Boleto::Avalista;
