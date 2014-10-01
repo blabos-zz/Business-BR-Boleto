@@ -5,12 +5,10 @@ use File::ShareDir qw{ module_file };
 
 requires qw{ nome codigo campo_livre pre_render };
 
-sub logo {
-    my ($self) = @_;
-
-    my $class = ref $self;
-    return module_file( ref($self), 'logo.png' );
-}
+has 'logo' => (
+    is      => 'ro',
+    builder => sub { module_file( ref( $_[0] ), 'logo.png' ); },
+);
 
 1;
 
