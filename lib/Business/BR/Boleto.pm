@@ -68,59 +68,21 @@ has 'febraban' => (
         my $banco = $self->banco->codigo;
         my $fator = fator_vencimento( $self->pagamento->data_vencimento );
         my $valor = int( 100 * $self->pagamento->valor_documento );
-        my $campo_livre =
-          $self->banco->campo_livre( $self->cedente, $self->pagamento );
 
-        my $spec = Business::BR::Boleto::FebrabanSpec->new(
+        my $campo_livre = $self->banco->campo_livre(
+            ## Calculado pelo módulo específico de cada banco
+            $self->cedente,
+            $self->pagamento,
+        );
+
+        return Business::BR::Boleto::FebrabanSpec->new(
             codigo_banco     => $banco,
             fator_vencimento => $fator,
-            valor_nominal    => sprintf( '%010d', $valor ),
+            valor_nominal    => $valor,
             campo_livre      => $campo_livre,
         );
-    },
+    }
 );
-
-sub codigo_barras {
-    my ($self) = @_;
-
-    return
-        ''
-      . $self->febraban->codigo_banco
-      . $self->febraban->codigo_moeda
-      . $self->febraban->dv_codigo_barras
-      . $self->febraban->fator_vencimento
-      . $self->febraban->valor_nominal
-      . $self->febraban->campo_livre;
-}
-
-sub linha_digitavel {
-    my ($self) = @_;
-
-    my $banco       = $self->febraban->codigo_banco;
-    my $moeda       = $self->febraban->codigo_moeda;
-    my $campo_livre = $self->febraban->campo_livre;
-    my $dv          = $self->febraban->dv_codigo_barras;
-    my $fator       = $self->febraban->fator_vencimento;
-    my $valor       = $self->febraban->valor_nominal;
-
-    my ( $campo1, $campo2, $campo3, $dac, $campo5 );
-
-    $campo1 = $banco . $moeda . substr $campo_livre, 0, 5;
-    $campo1 .= mod10($campo1);
-    $campo1 =~ s/(.{5})(.{5})/$1.$2/;
-
-    $campo2 = substr $campo_livre, 5, 10;
-    $campo2 .= mod10($campo2);
-    $campo2 =~ s/(.{5})(.{6})/$1.$2/;
-
-    $campo3 = substr $campo_livre, 15, 10;
-    $campo3 .= mod10($campo3);
-    $campo3 =~ s/(.{5})(.{6})/$1.$2/;
-
-    $campo5 = $fator . $valor;
-
-    return join ' ', $campo1, $campo2, $campo3, $dv, $campo5;
-}
 
 sub BUILDARGS {
     my ( $class, %args ) = @_;
@@ -143,4 +105,75 @@ sub BUILDARGS {
 
 1;
 
-# ABSTRACT: A system to generate Brazilian Boletos
+# ABSTRACT: Sistema para emissão de boletos bancários
+
+=pod
+
+=head1 SYNOPSIS
+
+Sistema para a emissão de boletos bancários
+
+    use Business::BR::Boleto;
+
+    my $boleto = Business::BR::Boleto->new(
+        banco     => 'CEF'          ## Caixa Econômica Federal
+        avalista  => {
+            ...                     ## Dados do sacador avalista se houver
+        },
+        cedente   => {
+            ...                     ## Dados do emissor do boleto
+        },
+        sacado    => {
+            ...                     ## Dados do pagador do boleto
+        },
+        pagamento => {
+            ...                     ## Dados do pagamento, valor, etc
+        },
+    );
+
+    my $renderer = Business::BR::Boleto::Renderer::PDF->new(
+        boleto   => $boleto,
+        base_dir => '/tmp/boletos',
+    );
+
+    $renderer->render;
+
+=method banco
+
+Retorna o objeto representando a instituição bancária escolhida. Esse objeto
+é instanciado automaticamente, desde que disponível no sistema. Veja
+L<Business::BR::Boleto::Role::Banco> ou L<Business::BR::Boleto::Banco::Itau>.
+
+=method avalista
+
+Retorna o objeto representando o sacador avalista. Veja
+L<Business::BR::Boleto::Avalista>.
+
+=method cedente
+
+Retorna o objeto representando o cedente. Veja
+L<Business::BR::Boleto::Cedente>.
+
+=method sacado
+
+Retorna o objeto representando o sacado. Veja
+L<Business::BR::Boleto::Sacado>.
+
+=method pagamento
+
+Retorna o objeto que contém os dados de pagamento fornecidos. Veja
+L<Business::BR::Boleto::Pagamento>.
+
+=method febraban
+
+Retorna o objeto que contem a representação do código de barras segundo
+a especificação da L<FEBRABAN|http://www.febraban.org.br>. Veja
+L<Business::BR::Boleto::FebrabanSpec>.
+
+=method BUILDARGS
+
+Método privado que maniula os argumentos e instancia objetos internos a
+partir deles. Não deve ser invocada diretamente.
+
+=cut
+
