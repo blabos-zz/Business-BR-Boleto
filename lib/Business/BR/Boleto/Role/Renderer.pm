@@ -4,10 +4,5 @@ use Moo::Role;
 
 requires qw{ render };
 
-has 'boleto' => (
-    is       => 'ro',
-    required => 1,
-);
-
 1;
 

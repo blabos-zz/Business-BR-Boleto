@@ -13,31 +13,19 @@ my ( $boleto, $renderer, %args, $got, %expected );
 %args     = %{ args() };
 %expected = %{ dados_renderizados() };
 delete $args{avalista};
-$expected{avalista} = {
-    nome      => '',
-    documento => '',
-    endereco  => '',
-};
+$expected{avalista} = { map { $_ => '' } qw{ nome documento endereco } };
 
 $boleto   = Business::BR::Boleto->new(%args);
-$renderer = Business::BR::Boleto::Renderer::Teste->new(
-    boleto  => $boleto,
-    my_args => [qw{ foo bar }],
-);
-
-$got = $renderer->render;
+$renderer = Business::BR::Boleto::Renderer::Teste->new;
+$got      = $renderer->render($boleto);
 is_deeply( $got, \%expected, 'Renderizando sem avalista', );
 
 %args     = %{ args() };
 %expected = %{ dados_renderizados() };
 
 $boleto   = Business::BR::Boleto->new(%args);
-$renderer = Business::BR::Boleto::Renderer::Teste->new(
-    boleto  => $boleto,
-    my_args => [qw{ etc 123 }],
-);
-
-$got = $renderer->render;
+$renderer = Business::BR::Boleto::Renderer::Teste->new;
+$got      = $renderer->render($boleto);
 is_deeply( $got, \%expected, 'Renderizando com avalista', );
 
 done_testing;
@@ -116,6 +104,8 @@ sub dados_renderizados {
         },
         'banco' => {
             'logo' => 't/lib/auto/Business/BR/Boleto/Banco/Teste/logo.png',
+            'nosso_numero'   => '123/00000777-6',
+            'codigo_cedente' => '1234/12345-6',
         },
         'cedente' => {
             'documento' => '84.476.158/0001-22',

@@ -5,9 +5,8 @@ with 'Business::BR::Boleto::Role::Banco';
 
 use Business::BR::Boleto::Utils qw{ mod10 mod11 };
 
-sub nome       { 'Teste' }
-sub codigo     { '999' }
-sub pre_render { }
+sub nome   { 'Teste' }
+sub codigo { '999' }
 
 sub campo_livre {
     my ( $self, $cedente, $pagamento ) = @_;
@@ -16,9 +15,13 @@ sub campo_livre {
     my $carteira     = sprintf '%03d', $cedente->carteira;
     my $agencia      = sprintf '%04d', $cedente->agencia->{numero};
     my $conta        = sprintf '%05d', $cedente->conta->{numero};
+    my $conta_dv     = $cedente->conta->{dv};
 
     my $dac_nn = mod10( $agencia . $conta . $carteira . $nosso_numero );
     my $dac_ac = mod11( $agencia . $conta );
+
+    $self->codigo_cedente( $agencia . '/' . $conta . '-' . $conta_dv );
+    $self->nosso_numero( $carteira . '/' . $nosso_numero . '-' . $dac_nn );
 
     return
         $carteira

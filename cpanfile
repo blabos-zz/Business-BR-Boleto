@@ -6,8 +6,7 @@ requires 'Moo'         => '1.006000';
 requires 'MAD::Loader' => '3.001000';
 
 on 'test' => sub {
-    requires 'Test::Most'            => '0.34';
-    requires 'Data::Structure::Util' => '0.15';
+    requires 'Test::Most' => '0.34';
 };
 
 on 'configure' => sub {

@@ -14,93 +14,89 @@ use Business::BR::Boleto::FebrabanSpec;
 use Business::BR::Boleto::Utils qw{ mod10 fator_vencimento };
 
 has 'banco' => (
-    is  => 'ro',
-    isa => sub {
-        Carp::croak 'Banco inválido'
-          unless $_[0]->does('Business::BR::Boleto::Role::Banco');
-    },
+    is       => 'rwp',
+    required => 1,
 );
 
 has 'cedente' => (
-    is       => 'ro',
+    is       => 'rwp',
     required => 1,
-    isa      => sub {
-        Carp::croak 'Cendente inválido'
-          unless $_[0]->isa('Business::BR::Boleto::Cedente');
-    },
 );
 
 has 'sacado' => (
-    is       => 'ro',
+    is       => 'rwp',
     required => 1,
-    isa      => sub {
-        Carp::croak 'Sacado inválido'
-          unless $_[0]->isa('Business::BR::Boleto::Sacado');
-    },
-);
-
-has 'avalista' => (
-    is      => 'ro',
-    default => sub {
-        Business::BR::Boleto::Avalista->new(
-            nome      => '',
-            endereco  => '',
-            documento => '',
-        );
-    },
 );
 
 has 'pagamento' => (
-    is       => 'ro',
+    is       => 'rwp',
     required => 1,
-    isa      => sub {
-        Carp::croak 'Dados de pagamento inválidos'
-          unless $_[0]->isa('Business::BR::Boleto::Pagamento');
-    },
+);
+
+has 'avalista' => (
+    is       => 'rwp',
+    required => 0,
 );
 
 has 'febraban' => (
-    is      => 'ro',
+    is      => 'rwp',
     lazy    => 1,
-    builder => sub {
-        my ($self) = @_;
-
-        my $banco = $self->banco->codigo;
-        my $fator = fator_vencimento( $self->pagamento->data_vencimento );
-        my $valor = int( 100 * $self->pagamento->valor_documento );
-
-        my $campo_livre = $self->banco->campo_livre(
-            ## Calculado pelo módulo específico de cada banco
-            $self->cedente,
-            $self->pagamento,
-        );
-
-        return Business::BR::Boleto::FebrabanSpec->new(
-            codigo_banco     => $banco,
-            fator_vencimento => $fator,
-            valor_nominal    => $valor,
-            campo_livre      => $campo_livre,
-        );
-    }
+    builder => 1,
 );
 
-sub BUILDARGS {
-    my ( $class, %args ) = @_;
+sub BUILD {
+    my ($self) = @_;
 
-    $args{banco} = load_and_new(
-        module => $args{banco},
-        prefix => 'Business::BR::Boleto::Banco',
-        args   => [],
+    $self->_set_banco(
+        load_and_new(
+            module => $self->banco,
+            prefix => 'Business::BR::Boleto::Banco',
+            args   => [],
+        )
     );
 
-    $args{cedente}   = Business::BR::Boleto::Cedente->new( $args{cedente} );
-    $args{sacado}    = Business::BR::Boleto::Sacado->new( $args{sacado} );
-    $args{pagamento} = Business::BR::Boleto::Pagamento->new( $args{pagamento} );
+    $self->_set_cedente( Business::BR::Boleto::Cedente->new( $self->cedente ) );
+    $self->_set_sacado( Business::BR::Boleto::Sacado->new( $self->sacado ) );
+    $self->_set_pagamento(
+        Business::BR::Boleto::Pagamento->new( $self->pagamento ) );
 
-    $args{avalista} = Business::BR::Boleto::Avalista->new( $args{avalista} )
-      if $args{avalista};
+    if ( $self->avalista ) {
+        $self->_set_avalista(
+            Business::BR::Boleto::Avalista->new( $self->avalista ) );
+    }
+    else {
+        $self->_set_avalista(
+            Business::BR::Boleto::Avalista->new(
+                map { $_ => '' } qw{ nome documento endereco }
+            )
+        );
+    }
 
-    return \%args;
+    ## Forçando build de atributos lazy
+    $self->febraban;
+
+    return;
+}
+
+sub _build_febraban {
+    my ($self) = @_;
+
+    my $banco = $self->banco->codigo;
+    my $fator = fator_vencimento( $self->pagamento->data_vencimento );
+    my $valor = int( 100 * $self->pagamento->valor_documento );
+
+    my $campo_livre = $self->banco->campo_livre(
+        ## Calculado pelo módulo específico de cada banco
+        $self->cedente,
+        $self->pagamento,
+    );
+
+    return Business::BR::Boleto::FebrabanSpec->new(
+        codigo_banco     => $banco,
+        fator_vencimento => $fator,
+        valor_nominal    => $valor,
+        campo_livre      => $campo_livre,
+    );
 }
 
 1;
@@ -170,10 +166,10 @@ Retorna o objeto que contem a representação do código de barras segundo
 a especificação da L<FEBRABAN|http://www.febraban.org.br>. Veja
 L<Business::BR::Boleto::FebrabanSpec>.
 
-=method BUILDARGS
+=method BUILD
 
-Método privado que maniula os argumentos e instancia objetos internos a
-partir deles. Não deve ser invocada diretamente.
+Método privado que inicializa objetos internos. Não deve ser invocado
+diretamente.
 
 =cut
 
